@@ -1,6 +1,8 @@
 local Utils = require 'backItems.imports.utils'
 local Config = require 'backItems.config'
-local PlayerState = LocalPlayer.state
+local plyState = LocalPlayer.state
+
+local BACK_ITEMS <const> = Config.BackItems
 
 InvCache = {}
 CurrentWeapon = nil
@@ -8,35 +10,31 @@ CurrentWeapon = nil
 function UpdateBackItems()
     local formattedData = Utils.formatCachedInventory(InvCache)
 
-    if not lib.table.matches(formattedData, PlayerState.backItems) then
-        PlayerState:set('backItems', formattedData, true)
+    if not lib.table.matches(formattedData, plyState.backItems) then
+        plyState:set('backItems', formattedData, true)
     end
 end
 
 local function shouldUpdate(slot, change)
-    local backitems = Config.BackItems
     local last = InvCache[slot]
-    local update = (last and backitems[last.name]) or change and backitems[change.name]
+    local update = (last and BACK_ITEMS[last.name]) or (change and BACK_ITEMS[change.name])
 
     return update
 end
 
-AddEventHandler('ox_inventory:updateInventory', function(changes)
-    if not changes then return end
+AddEventHandler('ox_inventory:updateInventory', function(invChanges)
+    if not invChanges then return false end
 
-    local needsUpdate = false
-
-    for slot, change in pairs(changes) do
-        if not needsUpdate then
-            needsUpdate = shouldUpdate(slot, change)
+    local shouldUpdateFlag = false;
+    for slot, change in pairs(invChanges) do
+        if not shouldUpdateFlag then
+            shouldUpdateFlag = shouldUpdate(slot, change)
         end
 
         InvCache[slot] = change or nil
     end
 
-    if needsUpdate then
-        UpdateBackItems()
-    end
+    if shouldUpdateFlag then UpdateBackItems() end
 end)
 
 local function flashlightLoop()
@@ -52,7 +50,7 @@ local function flashlightLoop()
         local currentState = IsFlashLightOn(cache.ped)
         if state ~= currentState then
             state = currentState
-            PlayerState:set('flashlightState', state, true)
+            plyState:set('flashlightState', state, true)
         end
         Wait(100)
     end
@@ -76,12 +74,12 @@ lib.onCache('vehicle', function(vehicle)
         return
     end
 
-    PlayerState:set('hideAllBackItems', toggle, true)
+    plyState:set('hideAllBackItems', toggle, true)
     UpdateBackItems()
 end)
 
-AddEventHandler('onResourceStart', function(resource)
-    if resource == GetCurrentResourceName() then
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName == cache.resource then
         Wait(100)
         InvCache = exports.ox_inventory:GetPlayerItems()
         CurrentWeapon = exports.ox_inventory:getCurrentWeapon()

@@ -28,9 +28,9 @@ local Config = {}
 ---@type table<string, Slot[]>
 Config.defaultSlots = {
     ['back'] = {
-        { bone = 24818, pos = vec3(0.09, -0.16, 0.12),  rot = vec3(0.0, 180.0, 0.0) },
         --{ bone = 24818, pos = vec3(0.09, -0.16, 0.00),  rot = vec3(0.0, 180.0, 0.0) },
-        { bone = 24818, pos = vec3(0.09, -0.16, -0.12), rot = vec3(0.0, 180.0, 0.0) }
+        { bone = 24818, pos = vec3(0.09, -0.16, -0.12), rot = vec3(0.0, 180.0, 0.0) },
+        { bone = 24818, pos = vec3(0.09, -0.16, 0.12),  rot = vec3(0.0, 180.0, 0.0) },
     },
 
     ['side'] = {
@@ -200,7 +200,9 @@ Config.BackItems = {
             bone = 24818,
             pos = vec3(0.07, -0.11, -0.05),
             rot = vec3(0.0, -90.0, 175.0)
-        }
+        },
+
+        ignoreLimits = false,
     },
 
     ['big_backpack'] = {
@@ -211,7 +213,9 @@ Config.BackItems = {
             bone = 24818,
             pos = vec3(-0.06, -0.07, -0.0),
             rot = vec3(0.0, -90.0, 175.0)
-        }
+        },
+
+        ignoreLimits = false,
     }
 }
 

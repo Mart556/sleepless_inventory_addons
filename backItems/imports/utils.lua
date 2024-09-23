@@ -9,7 +9,9 @@ for group, slots in pairs(Config.defaultSlots) do
 end
 
 local function getConfigData(slotData, config)
-    local isWeapon = not config.model and slotData.name:find('WEAPON_') ~= nil -- if there is an alt model set, use object instead of weapon,  i.e. katana weapon, but have a sheathed model attached
+    local isWeapon = not config.model and
+        slotData.name:find('WEAPON_') ~=
+        nil -- if there is an alt model set, use object instead of weapon,  i.e. katana weapon, but have a sheathed model attached
     local hide = (CurrentWeapon and CurrentWeapon.slot == slotData.slot) or PlayerState.hideAllBackItems
 
     return {
@@ -32,9 +34,13 @@ function Utils.formatCachedInventory(cache)
     local backItems = Config.BackItems
     local formattedInv = {}
 
+    local nonDuplicateItems = {};
     for _, slotData in pairs(cache) do
-        local configData = backItems[slotData.name]
-        if configData then
+        local itemName = slotData.name;
+        local configData = backItems[itemName];
+
+        if configData and not nonDuplicateItems[itemName] then
+            nonDuplicateItems[itemName] = true
             formattedInv[#formattedInv + 1] = getConfigData(slotData, configData)
         end
     end
@@ -49,9 +55,11 @@ function Utils.formatCachedInventory(cache)
     for i = 1, #formattedInv do
         local item = formattedInv[i]
         local group = item.group
+
         if group then
             takenGroupSlots[group] = takenGroupSlots[group] or 0
         end
+
         if takenGroupSlots[group] < numDefaultSlotGroups[group] or item.ignoreLimits then
             if not item.ignoreLimits then
                 takenGroupSlots[group] = takenGroupSlots[group] + 1
@@ -107,7 +115,7 @@ end
 function Utils.getOverride(vec, override)
     if not override then return vec3(vec.x, vec.y, vec.z) end
 
-    vec = {table.unpack(vec)}
+    vec = { table.unpack(vec) }
 
     vec.x = override.x or (vec.x or vec[1])
     vec.y = override.y or (vec.y or vec[2])

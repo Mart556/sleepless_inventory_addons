@@ -1,7 +1,7 @@
 local CBackItem = require 'backItems.imports.backitem'
 local CBackWeapon = require 'backItems.imports.weapon'
 local Utils = require 'backItems.imports.utils'
-local PlayerState = LocalPlayer.state
+local plyState = LocalPlayer.state
 
 SetFlashLightKeepOnWhileMoving(true)
 
@@ -12,7 +12,6 @@ local function deleteBackItemsForPlayer(serverId)
 
     for i = 1, #Players[serverId] do
         local backItem = Players[serverId][i]
-
         if backItem then
             backItem:destroy()
         end
@@ -24,20 +23,14 @@ end
 local Inventory = exports.ox_inventory;
 local function createBackItemsForPlayer(serverId, backItems)
     for i = 1, #backItems do
-        local itemData = backItems[i];
-        local itemCount = Inventory:GetItemCount(itemData.name);
+        local itemData = backItems[i]; if not itemData then return false; end
 
-        if itemCount and itemCount > 0 then
-            if itemData.isWeapon then
-                Players[serverId][#Players[serverId] + 1] = CBackWeapon:new(serverId, itemData)
-            else
-                Players[serverId][#Players[serverId] + 1] = CBackItem:new(serverId, itemData)
-            end
-        end
+        table.insert(Players[serverId],
+            itemData.isWeapon and CBackWeapon:new(serverId, itemData) or CBackItem:new(serverId, itemData))
     end
 end
 
-local function refreshBackItemsLocal()
+--[[ local function refreshBackItemsLocal()
     local serverId = cache.serverId
     if Players[serverId] then
         deleteBackItemsForPlayer(serverId)
@@ -46,41 +39,40 @@ local function refreshBackItemsLocal()
 
         createBackItemsForPlayer(serverId, Items)
     end
-end
+end ]]
 
 function RefreshBackItems()
-    if not Players[cache.serverId] then
-        Players[cache.serverId] = {}
-    end
-    if PlayerState.backItems and next(PlayerState.backItems) then
-        PlayerState:set('backItems', false, true)
+    local serverId = cache.serverId
 
-        UpdateBackItems()
+    if not Players[serverId] then
+        Players[serverId] = {}
+    end
+
+    if plyState.backItems and next(plyState.backItems) then
+        plyState:set('backItems', false, true); UpdateBackItems()
     end
 end
 
-AddStateBagChangeHandler('bucket', ('player:%s'):format(cache.serverId), function(_, _, value)
+--[[ AddStateBagChangeHandler('bucket', ('player:%s'):format(cache.serverId), function(_, _, value)
     if value == 0 then
-        if PlayerState.backItems and next(PlayerState.backItems) then
+        if plyState.backItems and next(plyState.backItems) then
             refreshBackItemsLocal()
         end
     end
 end)
 
-RegisterNetEvent('txcl:setPlayerMode', function(mode)
+ RegisterNetEvent('txcl:setPlayerMode', function(mode)
     if mode == "noclip" then
-        PlayerState:set("hideAllBackItems", true, true)
+        plyState:set("hideAllBackItems", true, true)
     elseif mode == "none" then
-        PlayerState:set("hideAllBackItems", false, true)
+        plyState:set("hideAllBackItems", false, true)
     end
 
     RefreshBackItems()
-end)
+end) ]]
 
 AddStateBagChangeHandler('backItems', nil, function(bagName, _, backItems, _, replicated)
-    if replicated then
-        return
-    end
+    if replicated then return end
 
     local playerId = GetPlayerFromStateBagName(bagName)
     local serverId = GetPlayerServerId(playerId)
@@ -96,7 +88,7 @@ AddStateBagChangeHandler('backItems', nil, function(bagName, _, backItems, _, re
     local plyPed = playerId == cache.playerId and cache.ped or lib.waitFor(function()
         local ped = GetPlayerPed(playerId)
         if ped > 0 then return ped end
-    end, ('%s Player didnt exsist in time! (%s)'):format(playerId, bagName), 10000)
+    end, ('%s Player didn`t exsists in time! (%s)'):format(playerId, bagName), 15000)
 
     if not plyPed or plyPed == 0 then return end
 
@@ -107,8 +99,8 @@ AddStateBagChangeHandler('backItems', nil, function(bagName, _, backItems, _, re
     end
 end)
 
-AddEventHandler('onResourceStop', function(resource)
-    if resource == GetCurrentResourceName() then
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName == cache.resource then
         for serverId, backItems in pairs(Players) do
             if backItems then
                 deleteBackItemsForPlayer(serverId)
@@ -121,20 +113,24 @@ CreateThread(function()
     while not LocalPlayer.state.isLoggedIn do Wait(100) end
 
     while true do
-        Wait(1000)
         for serverId, backItems in pairs(Players) do
-            local targetPed = GetPlayerPed(GetPlayerFromServerId(serverId))
-            if targetPed and DoesEntityExist(targetPed) then
-                for i = 1, #backItems do
-                    local backItem = backItems[i]
-                    if backItem and not IsEntityAttachedToEntity(backItem.object, targetPed) then
-                        backItem:attach()
+            local playerIdx = GetPlayerFromServerId(serverId);
+            if playerIdx and playerIdx ~= -1 then
+                local targetPed = GetPlayerPed(playerIdx);
+                if targetPed and DoesEntityExist(targetPed) then
+                    for i = 1, #backItems do
+                        local backItem = backItems[i]
+                        if backItem and not IsEntityAttachedToEntity(backItem.object, targetPed) then
+                            backItem:attach()
+                        end
                     end
                 end
             else
                 deleteBackItemsForPlayer(serverId)
             end
         end
+
+        Wait(1500);
     end
 end)
 
